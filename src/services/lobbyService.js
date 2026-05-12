@@ -8,10 +8,10 @@ import {
 import { database } from '../firebase/firebaseConfig'
 import {
   DEFAULT_ROOM_CODE,
-  TYPING_TIME_SECONDS,
-  VOTING_TIME_SECONDS,
   MAX_PLAYERS,
+  TYPING_TIME_SECONDS,
   USERNAME_MAX_LENGTH,
+  VOTING_TIME_SECONDS,
 } from '../constants/gameConstants'
 
 const ROOM_PATH = `rooms/${DEFAULT_ROOM_CODE}`
@@ -23,6 +23,7 @@ const ACTIVE_GAME_PHASES = new Set(['reveal', 'typing', 'discussion', 'voting'])
 export const LOBBY_ERROR_MESSAGES = {
   duplicateUsername: 'This username is already taken. Try another name.',
   firebase: 'Could not join lobby. Please try again.',
+  gameInProgress: 'Game already started. Wait for the next lobby.',
   invalidRoomCode: 'Invalid room code. Use ABC123 to join Aura.',
   roomFull: 'Lobby is full. Maximum 11 players can join.',
 }
@@ -113,6 +114,18 @@ function getImpostorIds(room) {
   })
 }
 
+function getActiveImpostorIds(room) {
+  return getImpostorIds(room).filter((impostorId) => {
+    return Boolean(room?.players?.[impostorId])
+  })
+}
+
+function getActiveCrewmates(room) {
+  return getActivePlayers(room?.players ?? {}).filter((player) => {
+    return player.role === 'crewmate'
+  })
+}
+
 function getPlayerSnapshot(room, playerId) {
   return room?.players?.[playerId] ?? room?.gamePlayers?.[playerId] ?? null
 }
@@ -142,8 +155,22 @@ function createImpostorLeftResult(room) {
     word: room.currentWord ?? null,
     reason:
       impostorIds.length > 1
-        ? 'An impostor left the game.'
+        ? 'All impostors left the game.'
         : 'The impostor left the game.',
+  }
+}
+
+function createCrewmatesLeftResult(room) {
+  const impostorIds = getImpostorIds(room)
+  const impostorProfiles = getImpostorProfiles(room, impostorIds)
+
+  return {
+    winningTeam: 'impostors',
+    impostorIds: Object.fromEntries(impostorIds.map((impostorId) => [impostorId, true])),
+    impostorNames: impostorProfiles.map((player) => player.username),
+    impostorProfiles,
+    word: room.currentWord ?? null,
+    reason: 'All crewmates left the game.',
   }
 }
 
@@ -204,6 +231,29 @@ function getRoundKey(roundIndex) {
   return `round_${roundIndex}`
 }
 
+function getRequiredVoteTargetCount(room) {
+  return getActiveImpostorIds(room).length > 1 ? 2 : 1
+}
+
+function normalizeVoteTargets(room, targets = []) {
+  const activePlayerIds = new Set(getActivePlayers(room?.players ?? {}).map((player) => player.id))
+  const activeImpostorIds = getActiveImpostorIds(room)
+  const requiredTargetCount = getRequiredVoteTargetCount(room)
+  const activeTargets = [...new Set(targets)].filter((targetId) => {
+    return activePlayerIds.has(targetId)
+  })
+
+  if (requiredTargetCount === 1 && activeTargets.length > 1) {
+    const remainingImpostorTarget = activeTargets.find((targetId) => {
+      return activeImpostorIds.includes(targetId)
+    })
+
+    return [remainingImpostorTarget ?? activeTargets[0]]
+  }
+
+  return activeTargets.slice(0, requiredTargetCount)
+}
+
 function pruneVotes(room) {
   const activePlayerIds = new Set(getActivePlayers(room?.players ?? {}).map((player) => player.id))
 
@@ -216,7 +266,7 @@ function pruneVotes(room) {
         voterId,
         {
           ...vote,
-          targets: (vote.targets ?? []).filter((targetId) => activePlayerIds.has(targetId)),
+          targets: normalizeVoteTargets(room, vote.targets ?? []),
         },
       ]),
   )
@@ -328,12 +378,18 @@ function calculateTwoImpostorResult(voteCounts, impostorIds) {
 
 function calculateVotingResult(room) {
   const impostorIds = getImpostorIds(room)
+  const activeImpostorIds = getActiveImpostorIds(room)
   const impostorProfiles = getImpostorProfiles(room, impostorIds)
   const voteCounts = countVotes(room)
+
+  if (activeImpostorIds.length === 0) {
+    return createImpostorLeftResult(room)
+  }
+
   const outcome =
-    impostorIds.length > 1
-      ? calculateTwoImpostorResult(voteCounts, impostorIds)
-      : calculateSingleImpostorResult(voteCounts, impostorIds[0])
+    activeImpostorIds.length > 1
+      ? calculateTwoImpostorResult(voteCounts, activeImpostorIds)
+      : calculateSingleImpostorResult(voteCounts, activeImpostorIds[0])
 
   return {
     winningTeam: outcome.winningTeam,
@@ -378,11 +434,10 @@ function getRepairedRoom(room) {
   }
 
   const impostorIds = getImpostorIds(nextRoom)
-  const activeImpostorIds = impostorIds.filter((impostorId) => {
-    return Boolean(nextRoom.players?.[impostorId])
-  })
+  const activeImpostorIds = getActiveImpostorIds(nextRoom)
+  const activeCrewmates = getActiveCrewmates(nextRoom)
 
-  if (impostorIds.length > 0 && activeImpostorIds.length < impostorIds.length) {
+  if (impostorIds.length > 0 && activeImpostorIds.length === 0) {
     return {
       ...nextRoom,
       currentTypingPlayerId: null,
@@ -390,6 +445,18 @@ function getRepairedRoom(room) {
       phaseDurationSeconds: null,
       phaseStartedAt: serverTimestamp(),
       result: createImpostorLeftResult(nextRoom),
+      votes: pruneVotes(nextRoom),
+    }
+  }
+
+  if (activeImpostorIds.length > 0 && activeCrewmates.length === 0) {
+    return {
+      ...nextRoom,
+      currentTypingPlayerId: null,
+      gamePhase: 'result',
+      phaseDurationSeconds: null,
+      phaseStartedAt: serverTimestamp(),
+      result: createCrewmatesLeftResult(nextRoom),
       votes: pruneVotes(nextRoom),
     }
   }
@@ -528,7 +595,14 @@ export async function joinRoom(username, roomCode) {
         const currentRoom = room ?? {}
         const players = currentRoom.players ?? {}
         const activePlayers = getActivePlayers(players)
+        const gamePhase = currentRoom.gamePhase ?? 'lobby'
         const normalizedUsername = usernameValidation.username.toLowerCase()
+
+        if (gamePhase !== 'lobby') {
+          joinError = LOBBY_ERROR_MESSAGES.gameInProgress
+          return undefined
+        }
+
         const duplicatePlayer = activePlayers.find((player) => {
           return (
             player.id !== playerId &&
@@ -579,7 +653,7 @@ export async function joinRoom(username, roomCode) {
         return {
           ...currentRoom,
           roomCode: DEFAULT_ROOM_CODE,
-          gamePhase: currentRoom.gamePhase ?? 'lobby',
+          gamePhase,
           hostId,
           players: nextPlayers,
         }

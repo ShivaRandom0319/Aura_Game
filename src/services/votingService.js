@@ -35,8 +35,18 @@ function getImpostorIds(room) {
   })
 }
 
+function getActiveImpostorIds(room) {
+  return getImpostorIds(room).filter((impostorId) => {
+    return Boolean(room?.players?.[impostorId])
+  })
+}
+
+function getActiveCrewmates(room) {
+  return getActivePlayers(room).filter((player) => player.role === 'crewmate')
+}
+
 export function getRequiredVoteCount(room) {
-  return getImpostorIds(room).length > 1 ? 2 : 1
+  return getActiveImpostorIds(room).length > 1 ? 2 : 1
 }
 
 function getSecondsElapsed(room) {
@@ -57,6 +67,25 @@ function normalizeTargets(targetIds) {
   return [...new Set(targetIds.map((targetId) => String(targetId ?? '').trim()))].filter(
     Boolean,
   )
+}
+
+function normalizeVoteTargetsForRoom(room, targetIds) {
+  const activePlayerIds = new Set(getActivePlayers(room).map((player) => player.id))
+  const activeImpostorIds = getActiveImpostorIds(room)
+  const requiredVoteCount = getRequiredVoteCount(room)
+  const activeTargets = normalizeTargets(targetIds).filter((targetId) => {
+    return activePlayerIds.has(targetId)
+  })
+
+  if (requiredVoteCount === 1 && activeTargets.length > 1) {
+    const remainingImpostorTarget = activeTargets.find((targetId) => {
+      return activeImpostorIds.includes(targetId)
+    })
+
+    return [remainingImpostorTarget ?? activeTargets[0]]
+  }
+
+  return activeTargets.slice(0, requiredVoteCount)
 }
 
 function validateTargets(room, targetIds) {
@@ -102,7 +131,7 @@ function countVotes(room) {
       return
     }
 
-    vote.targets.forEach((targetId) => {
+    normalizeVoteTargetsForRoom(room, vote.targets).forEach((targetId) => {
       if (Object.prototype.hasOwnProperty.call(voteCounts, targetId)) {
         voteCounts[targetId] += 1
       }
@@ -147,7 +176,7 @@ function calculateSingleImpostorResult(voteCounts, impostorId) {
   }
 }
 
-function calculateTwoImpostorResult(room, voteCounts, impostorIds) {
+function calculateTwoImpostorResult(voteCounts, impostorIds) {
   const entries = Object.entries(voteCounts).sort((firstEntry, secondEntry) => {
     return secondEntry[1] - firstEntry[1]
   })
@@ -187,14 +216,8 @@ function calculateTwoImpostorResult(room, voteCounts, impostorIds) {
   }
 }
 
-function calculateResult(room) {
-  const impostorIds = getImpostorIds(room)
-  const voteCounts = countVotes(room)
-  const outcome =
-    impostorIds.length > 1
-      ? calculateTwoImpostorResult(room, voteCounts, impostorIds)
-      : calculateSingleImpostorResult(voteCounts, impostorIds[0])
-  const impostorProfiles = impostorIds.map((impostorId) => {
+function getImpostorProfiles(room, impostorIds) {
+  return impostorIds.map((impostorId) => {
     const player = room.players?.[impostorId] ?? room.gamePlayers?.[impostorId]
 
     return {
@@ -204,15 +227,42 @@ function calculateResult(room) {
       isHost: Boolean(player?.isHost),
     }
   })
+}
+
+function createResult(room, winningTeam, reason) {
+  const impostorIds = getImpostorIds(room)
+  const impostorProfiles = getImpostorProfiles(room, impostorIds)
 
   return {
-    winningTeam: outcome.winningTeam,
+    winningTeam,
     impostorIds: Object.fromEntries(impostorIds.map((impostorId) => [impostorId, true])),
     impostorNames: impostorProfiles.map((player) => player.username),
     impostorProfiles,
     word: room.currentWord ?? null,
-    reason: outcome.reason,
+    reason,
   }
+}
+
+function calculateResult(room) {
+  const impostorIds = getImpostorIds(room)
+  const activeImpostorIds = getActiveImpostorIds(room)
+  const activeCrewmates = getActiveCrewmates(room)
+  const voteCounts = countVotes(room)
+
+  if (impostorIds.length > 0 && activeImpostorIds.length === 0) {
+    return createResult(room, 'crewmates', 'All impostors left the game.')
+  }
+
+  if (activeImpostorIds.length > 0 && activeCrewmates.length === 0) {
+    return createResult(room, 'impostors', 'All crewmates left the game.')
+  }
+
+  const outcome =
+    activeImpostorIds.length > 1
+      ? calculateTwoImpostorResult(voteCounts, activeImpostorIds)
+      : calculateSingleImpostorResult(voteCounts, activeImpostorIds[0])
+
+  return createResult(room, outcome.winningTeam, outcome.reason)
 }
 
 function allActivePlayersConfirmed(room) {
