@@ -59,7 +59,7 @@ function LobbyPlayerRow({ players, currentPlayerId }) {
   )
 }
 
-function LobbyPage({ onLeaveLobby }) {
+function LobbyPage({ onLeaveLobby, onAccessDenied = onLeaveLobby }) {
   const [room, setRoom] = useState(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState('')
@@ -88,6 +88,7 @@ function LobbyPage({ onLeaveLobby }) {
 
   const players = useMemo(() => getActivePlayers(room), [room])
   const currentPlayer = players.find((player) => player.id === currentPlayerId)
+  const currentPlayerIsInRoom = Boolean(currentPlayer)
   const isCurrentPlayerHost = Boolean(currentPlayer?.isHost)
   const hasMinimumPlayers = players.length >= MIN_PLAYERS
   const canStartGame = isCurrentPlayerHost && hasMinimumPlayers
@@ -97,6 +98,16 @@ function LobbyPage({ onLeaveLobby }) {
     players.slice(5, 9),
     players.slice(9, 11),
   ]
+
+  useEffect(() => {
+    if (isLoading || error) {
+      return
+    }
+
+    if (!room || !currentPlayerId || !currentPlayerIsInRoom) {
+      onAccessDenied()
+    }
+  }, [currentPlayerId, currentPlayerIsInRoom, error, isLoading, onAccessDenied, room])
 
   const handleStartGame = async () => {
     if (!canStartGame || isStarting) {
@@ -150,6 +161,10 @@ function LobbyPage({ onLeaveLobby }) {
         </div>
       </main>
     )
+  }
+
+  if (!room || !currentPlayerId || !currentPlayerIsInRoom) {
+    return <LoadingScreen text="Returning home..." helperText="" />
   }
 
   if (room?.gamePhase === 'reveal') {

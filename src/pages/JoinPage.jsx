@@ -4,7 +4,7 @@ import GameCard from '../components/GameCard'
 import GlowingButton from '../components/GlowingButton'
 import StarsBackground from '../components/StarsBackground'
 import TextInput from '../components/TextInput'
-import { DEFAULT_ROOM_CODE } from '../constants/gameConstants'
+import { DEFAULT_ROOM_CODE, USERNAME_MAX_LENGTH } from '../constants/gameConstants'
 import {
   joinRoom,
   LOBBY_ERROR_MESSAGES,
@@ -106,6 +106,8 @@ function JoinPage({ onBack, onJoinLobby }) {
               value={username}
               onChange={(event) => setUsername(event.target.value)}
               error={errors.username}
+              maxLength={USERNAME_MAX_LENGTH}
+              pattern="[A-Za-z0-9_]+"
               autoComplete="off"
             />
 
@@ -116,6 +118,8 @@ function JoinPage({ onBack, onJoinLobby }) {
               value={roomCode}
               onChange={(event) => setRoomCode(event.target.value.toUpperCase())}
               error={errors.roomCode}
+              maxLength={DEFAULT_ROOM_CODE.length}
+              pattern={DEFAULT_ROOM_CODE}
               autoComplete="off"
             />
 

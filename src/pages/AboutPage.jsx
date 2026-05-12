@@ -26,7 +26,10 @@ function AboutPage({ onBack }) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.45, ease: 'easeOut' }}
           >
-            <p className="text-sm font-black uppercase tracking-[0.18em] text-cyan-200">
+            <p className="rounded-full border border-cyan-200/20 bg-slate-950/70 px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-cyan-100 shadow-[0_0_18px_rgba(34,211,238,0.18)]">
+              © Aura by Shiva — Classified multiplayer project
+            </p>
+            <p className="mt-5 text-sm font-black uppercase tracking-[0.18em] text-cyan-200">
               About Aura
             </p>
             <h1 className="mt-3 text-4xl font-black tracking-normal text-white md:text-5xl">

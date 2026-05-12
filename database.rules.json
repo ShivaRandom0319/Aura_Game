@@ -1,0 +1,49 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "rooms": {
+      "$roomCode": {
+        ".read": "$roomCode === 'ABC123'",
+        ".write": "$roomCode === 'ABC123' && newData.exists() && newData.child('roomCode').val() === 'ABC123' && newData.child('gamePhase').isString() && newData.child('gamePhase').val().matches(/^(lobby|reveal|typing|discussion|voting|result)$/) && (!newData.child('players').exists() || newData.child('players').childrenCount() <= 11)",
+        "players": {
+          "$playerId": {
+            ".validate": "!newData.exists() || (newData.child('id').val() === $playerId && newData.child('username').isString() && newData.child('username').val().matches(/^[A-Za-z0-9_]{1,15}$/) && newData.child('color').isString() && newData.child('color').val().matches(/^#[0-9A-Fa-f]{6}$/) && newData.child('isHost').isBoolean() && newData.child('online').isBoolean() && (!newData.child('role').exists() || newData.child('role').val().matches(/^(crewmate|impostor)$/)))"
+          }
+        },
+        "roundClues": {
+          "$roundId": {
+            ".validate": "!newData.exists() || (newData.child('playerId').isString() && newData.child('username').isString() && newData.child('username').val().matches(/^[A-Za-z0-9_]{1,15}$/) && newData.child('clue').isString() && newData.child('clue').val().matches(/^.{1,20}$/))"
+          }
+        },
+        "votes": {
+          "$voterId": {
+            ".validate": "!newData.exists() || (newData.child('voterId').val() === $voterId && newData.child('confirmed').val() === true)"
+          }
+        }
+      }
+    },
+    "words": {
+      ".read": true,
+      ".write": false,
+      "$wordId": {
+        ".validate": "newData.hasChildren(['id', 'text', 'category', 'active']) && newData.child('id').isNumber() && newData.child('text').isString() && newData.child('text').val().matches(/^[^\\s]{1,32}$/) && newData.child('category').isString() && newData.child('active').isBoolean()"
+      }
+    },
+    "wordRotation": {
+      ".read": true,
+      ".write": "newData.exists()",
+      "usedWordIds": {
+        "$wordId": {
+          ".validate": "newData.isBoolean()"
+        }
+      },
+      "lastWordId": {
+        ".validate": "newData.isString()"
+      },
+      "updatedAt": {
+        ".validate": "newData.isNumber()"
+      }
+    }
+  }
+}

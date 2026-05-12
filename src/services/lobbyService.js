@@ -561,6 +561,10 @@ export function getStoredPlayerId() {
   return getStorage()?.getItem(PLAYER_ID_STORAGE_KEY) ?? ''
 }
 
+export function getStoredUsername() {
+  return getStorage()?.getItem(USERNAME_STORAGE_KEY) ?? ''
+}
+
 export function validateUsername(username) {
   const trimmedUsername = String(username ?? '').trim()
 

@@ -44,18 +44,13 @@ Aura uses Firebase Realtime Database.
 - Words path: `words`
 - Word rotation path: `wordRotation`
 
-For testing only, Firebase rules can be:
+Use `database.rules.json` as the safer Realtime Database rules baseline. It limits reads and writes to Aura's single room, blocks writes to unknown rooms, blocks client writes to `words`, validates player usernames/colors/roles, validates clue length, and keeps the lobby capped at 11 players.
 
-```json
-{
-  "rules": {
-    ".read": true,
-    ".write": true
-  }
-}
-```
+To apply the rules, open Firebase Console, go to Realtime Database, open the Rules tab, and paste the contents of `database.rules.json`. If your Firebase CLI is configured for this project, you can also deploy the rules from this repo.
 
-These open rules are only for testing with friends. They should be improved later.
+Do not use fully open rules like `{ ".read": true, ".write": true }` outside quick private testing. Aura currently has no Firebase Auth, so database rules can validate data shape but cannot prove which browser owns a player. For a stronger public release, add Firebase Auth or App Check and tighten per-player writes.
+
+Firebase web config values using `VITE_*` are included in the browser bundle by design. Treat Realtime Database rules as the security boundary, and keep real `.env` files uncommitted.
 
 ## Firebase Words
 

@@ -20,6 +20,9 @@ function HomePage({ onPlay, onAbout }) {
           <p className="mt-4 text-lg font-semibold text-cyan-100/90 md:text-2xl">
             A secret word. Hidden impostors. One suspicious lobby.
           </p>
+          <p className="mt-3 text-base font-black uppercase tracking-[0.16em] text-fuchsia-100 drop-shadow-[0_0_16px_rgba(217,70,239,0.45)] md:text-lg">
+            Play on laptop. Debate on phone.
+          </p>
         </motion.div>
 
         <motion.div
