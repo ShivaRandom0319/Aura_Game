@@ -37,7 +37,9 @@ function getImpostorIds(room) {
 
 function getActiveImpostorIds(room) {
   return getImpostorIds(room).filter((impostorId) => {
-    return Boolean(room?.players?.[impostorId])
+    const player = room?.players?.[impostorId]
+
+    return Boolean(player && player.online !== false)
   })
 }
 

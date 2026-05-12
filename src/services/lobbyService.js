@@ -116,7 +116,9 @@ function getImpostorIds(room) {
 
 function getActiveImpostorIds(room) {
   return getImpostorIds(room).filter((impostorId) => {
-    return Boolean(room?.players?.[impostorId])
+    const player = room?.players?.[impostorId]
+
+    return Boolean(player && player.online !== false)
   })
 }
 
@@ -171,6 +173,27 @@ function createCrewmatesLeftResult(room) {
     impostorProfiles,
     word: room.currentWord ?? null,
     reason: 'All crewmates left the game.',
+  }
+}
+
+function resetRoomToEmptyLobby(room = {}) {
+  return {
+    ...room,
+    currentRoundIndex: null,
+    currentTypingPlayerId: null,
+    currentWord: null,
+    discussionSkips: null,
+    gamePlayers: null,
+    gamePhase: 'lobby',
+    hostId: null,
+    impostorIds: null,
+    phaseDurationSeconds: null,
+    phaseStartedAt: null,
+    players: {},
+    result: null,
+    roundClues: null,
+    roundOrder: null,
+    votes: null,
   }
 }
 
@@ -592,11 +615,18 @@ export async function joinRoom(username, roomCode) {
     const transactionResult = await runTransaction(
       roomReference,
       (room) => {
-        const currentRoom = room ?? {}
-        const players = currentRoom.players ?? {}
-        const activePlayers = getActivePlayers(players)
-        const gamePhase = currentRoom.gamePhase ?? 'lobby'
+        let currentRoom = room ?? {}
+        let players = removeOfflinePlayers(currentRoom.players ?? {})
+        let activePlayers = getActivePlayers(players)
+        let gamePhase = currentRoom.gamePhase ?? 'lobby'
         const normalizedUsername = usernameValidation.username.toLowerCase()
+
+        if (gamePhase !== 'lobby' && activePlayers.length === 0) {
+          currentRoom = resetRoomToEmptyLobby(currentRoom)
+          players = {}
+          activePlayers = []
+          gamePhase = 'lobby'
+        }
 
         if (gamePhase !== 'lobby') {
           joinError = LOBBY_ERROR_MESSAGES.gameInProgress
