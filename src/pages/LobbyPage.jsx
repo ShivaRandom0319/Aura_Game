@@ -224,7 +224,7 @@ function LobbyPage({ onLeaveLobby }) {
               >
                 {isCurrentPlayerHost && !hasMinimumPlayers && (
                   <p className="text-sm font-semibold text-amber-200">
-                    Need at least 2 players to start.
+                    Need at least 3 players to start.
                   </p>
                 )}
                 {!isCurrentPlayerHost && (

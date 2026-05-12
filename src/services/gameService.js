@@ -16,7 +16,7 @@ export const GAME_ERROR_MESSAGES = {
   alreadyStarted: 'Game has already started.',
   firebase: 'Could not start game. Please try again.',
   hostOnly: 'Only the host can start the game.',
-  notEnoughPlayers: 'Need at least 2 players to start.',
+  notEnoughPlayers: 'Need at least 3 players to start.',
   roomFull: 'Lobby is full. Maximum 11 players can join.',
 }
 
