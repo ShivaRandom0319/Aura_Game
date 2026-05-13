@@ -35,17 +35,17 @@ function HomePage({ onPlay, onAbout }) {
         </motion.div>
 
         <motion.div
-          className="grid gap-4 sm:grid-cols-2"
+          className="mx-auto grid w-full max-w-md gap-4 sm:grid-cols-2"
           initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, delay: 0.25, ease: 'easeOut' }}
         >
-          <div className="flex justify-start">
+          <div className="flex justify-center sm:justify-end">
             <GlowingButton className="min-w-44" onClick={onPlay}>
               Play
             </GlowingButton>
           </div>
-          <div className="flex justify-start sm:justify-end">
+          <div className="flex justify-center sm:justify-start">
             <GlowingButton className="min-w-44" variant="secondary" onClick={onAbout}>
               About
             </GlowingButton>
