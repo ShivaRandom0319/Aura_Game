@@ -10,10 +10,10 @@ function RotateDeviceNotice() {
     >
       <div className="max-w-sm rounded-3xl border border-cyan-200/25 bg-slate-900/80 p-7 shadow-[0_0_34px_rgba(34,211,238,0.2)]">
         <p className="text-2xl font-black leading-tight text-cyan-100">
-          Please rotate your phone for the best experience.
+          Aura is laptop-exclusive.
         </p>
         <p className="mt-3 text-sm font-semibold text-slate-300">
-          Aura is designed for landscape gameplay.
+          Phone version coming in 2099.
         </p>
       </div>
     </motion.div>
