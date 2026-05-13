@@ -57,9 +57,7 @@ function AboutPage({ onBack }) {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.45, ease: 'easeOut' }}
           >
-            <p className="text-sm font-black uppercase tracking-[0.18em] text-cyan-200">
-              About Aura
-            </p>
+           
             <h1 className="text-4xl font-black tracking-normal text-white md:text-5xl">
               ABOUT AURA
             </h1>
