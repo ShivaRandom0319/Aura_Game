@@ -1,8 +1,6 @@
 import { ref, runTransaction, serverTimestamp } from 'firebase/database'
-import { DEFAULT_ROOM_CODE } from '../constants/gameConstants'
 import { database } from '../firebase/firebaseConfig'
-
-const ROOM_PATH = `rooms/${DEFAULT_ROOM_CODE}`
+import { getRoomPath } from '../utils/roomUtils'
 
 export const VOTING_ERROR_MESSAGES = {
   alreadyVoted: 'Your vote is already locked.',
@@ -18,11 +16,13 @@ class VotingServiceError extends Error {
 }
 
 function getRoomReference() {
-  if (!database) {
+  const roomPath = getRoomPath()
+
+  if (!database || !roomPath) {
     throw new VotingServiceError(VOTING_ERROR_MESSAGES.firebase)
   }
 
-  return ref(database, ROOM_PATH)
+  return ref(database, roomPath)
 }
 
 function getActivePlayers(room) {

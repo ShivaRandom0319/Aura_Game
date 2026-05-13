@@ -3,9 +3,9 @@
     ".read": false,
     ".write": false,
     "rooms": {
-      "$roomCode": {
-        ".read": "$roomCode === 'ABC123'",
-        ".write": "$roomCode === 'ABC123' && newData.exists() && newData.child('roomCode').val() === 'ABC123' && newData.child('gamePhase').isString() && newData.child('gamePhase').val().matches(/^(lobby|reveal|typing|discussion|voting|result)$/) && (!newData.child('players').exists() || newData.child('players').childrenCount() <= 11)",
+      "$roomId": {
+        ".read": "$roomId === 'biriyani' || $roomId === 'dosa' || $roomId === 'ice-cream' || $roomId === 'chocolate' || $roomId === 'pizza'",
+        ".write": "($roomId === 'biriyani' || $roomId === 'dosa' || $roomId === 'ice-cream' || $roomId === 'chocolate' || $roomId === 'pizza') && newData.exists() && newData.child('roomId').val() === $roomId && (($roomId === 'biriyani' && newData.child('roomName').val() === 'Biriyani') || ($roomId === 'dosa' && newData.child('roomName').val() === 'Dosa') || ($roomId === 'ice-cream' && newData.child('roomName').val() === 'Ice Cream') || ($roomId === 'chocolate' && newData.child('roomName').val() === 'Chocolate') || ($roomId === 'pizza' && newData.child('roomName').val() === 'Pizza')) && newData.child('gamePhase').isString() && newData.child('gamePhase').val().matches(/^(lobby|reveal|typing|discussion|voting|result)$/) && (!newData.child('players').exists() || newData.child('players').childrenCount() <= 11)",
         "players": {
           "$playerId": {
             ".validate": "!newData.exists() || (newData.child('id').val() === $playerId && newData.child('username').isString() && newData.child('username').val().matches(/^[A-Za-z0-9_]{1,15}$/) && newData.child('color').isString() && newData.child('color').val().matches(/^#[0-9A-Fa-f]{6}$/) && newData.child('isHost').isBoolean() && newData.child('online').isBoolean() && (!newData.child('role').exists() || newData.child('role').val().matches(/^(crewmate|impostor)$/)))"

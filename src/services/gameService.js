@@ -1,6 +1,5 @@
 import { get, ref, runTransaction, serverTimestamp } from 'firebase/database'
 import {
-  DEFAULT_ROOM_CODE,
   MAX_PLAYERS,
   MIN_PLAYERS,
   REVEAL_TIME_SECONDS,
@@ -8,9 +7,8 @@ import {
   VOTING_TIME_SECONDS,
 } from '../constants/gameConstants'
 import { database } from '../firebase/firebaseConfig'
+import { getRoomPath } from '../utils/roomUtils'
 import { getNextWord } from './wordService'
-
-const ROOM_PATH = `rooms/${DEFAULT_ROOM_CODE}`
 
 export const GAME_ERROR_MESSAGES = {
   alreadyStarted: 'Game has already started.',
@@ -28,11 +26,13 @@ class GameServiceError extends Error {
 }
 
 function getRoomReference() {
-  if (!database) {
+  const roomPath = getRoomPath()
+
+  if (!database || !roomPath) {
     throw new GameServiceError(GAME_ERROR_MESSAGES.firebase)
   }
 
-  return ref(database, ROOM_PATH)
+  return ref(database, roomPath)
 }
 
 function getActivePlayers(players = {}) {

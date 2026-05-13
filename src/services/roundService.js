@@ -1,13 +1,12 @@
 import { ref, runTransaction, serverTimestamp } from 'firebase/database'
 import {
-  DEFAULT_ROOM_CODE,
   DISCUSSION_TIME_SECONDS,
   TYPING_TIME_SECONDS,
   VOTING_TIME_SECONDS,
 } from '../constants/gameConstants'
 import { database } from '../firebase/firebaseConfig'
+import { getRoomPath } from '../utils/roomUtils'
 
-const ROOM_PATH = `rooms/${DEFAULT_ROOM_CODE}`
 const CLUE_MAX_LENGTH = 20
 const NO_CLUE_TEXT = 'No clue'
 
@@ -26,11 +25,13 @@ class RoundServiceError extends Error {
 }
 
 function getRoomReference() {
-  if (!database) {
+  const roomPath = getRoomPath()
+
+  if (!database || !roomPath) {
     throw new RoundServiceError(ROUND_ERROR_MESSAGES.firebase)
   }
 
-  return ref(database, ROOM_PATH)
+  return ref(database, roomPath)
 }
 
 function getRoundKey(roundIndex) {

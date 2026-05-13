@@ -5,13 +5,14 @@ import GlowingButton from '../components/GlowingButton'
 import LoadingScreen from '../components/LoadingScreen'
 import PlayerAvatar from '../components/PlayerAvatar'
 import StarsBackground from '../components/StarsBackground'
-import { DEFAULT_ROOM_CODE, MIN_PLAYERS } from '../constants/gameConstants'
+import { MIN_PLAYERS } from '../constants/gameConstants'
 import { GAME_ERROR_MESSAGES, startGame } from '../services/gameService'
 import {
   getStoredPlayerId,
   leaveRoom,
   listenToRoom,
 } from '../services/lobbyService'
+import { getStoredRoomOption } from '../utils/roomUtils'
 import DiscussionPage from './DiscussionPage'
 import RevealPage from './RevealPage'
 import ResultPage from './ResultPage'
@@ -67,6 +68,7 @@ function LobbyPage({ onLeaveLobby, onAccessDenied = onLeaveLobby }) {
   const [isStarting, setIsStarting] = useState(false)
   const [startError, setStartError] = useState('')
   const currentPlayerId = getStoredPlayerId()
+  const storedRoom = getStoredRoomOption()
 
   useEffect(() => {
     const unsubscribeRoom = listenToRoom(
@@ -89,6 +91,7 @@ function LobbyPage({ onLeaveLobby, onAccessDenied = onLeaveLobby }) {
   const players = useMemo(() => getActivePlayers(room), [room])
   const currentPlayer = players.find((player) => player.id === currentPlayerId)
   const currentPlayerIsInRoom = Boolean(currentPlayer)
+  const roomName = room?.roomName ?? storedRoom?.name ?? 'Room'
   const isCurrentPlayerHost = Boolean(currentPlayer?.isHost)
   const hasMinimumPlayers = players.length >= MIN_PLAYERS
   const canStartGame = isCurrentPlayerHost && hasMinimumPlayers
@@ -216,7 +219,7 @@ function LobbyPage({ onLeaveLobby, onAccessDenied = onLeaveLobby }) {
             Lobby
           </h1>
           <p className="mt-2 text-lg font-black uppercase tracking-[0.12em] text-cyan-200">
-            Room Code: {DEFAULT_ROOM_CODE}
+            Room: {roomName}
           </p>
           <p className="mt-2 text-sm font-semibold text-slate-300">
             Waiting for the host to start the game.

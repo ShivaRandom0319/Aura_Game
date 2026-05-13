@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage'
 import JoinPage from './pages/JoinPage'
 import LobbyPage from './pages/LobbyPage'
 import { getStoredPlayerId, getStoredUsername } from './services/lobbyService'
+import { clearStoredRoomId, getStoredRoomOption } from './utils/roomUtils'
 
 const routes = {
   home: '/',
@@ -27,7 +28,7 @@ function getCurrentPath() {
 }
 
 function hasStoredLobbySession() {
-  return Boolean(getStoredPlayerId() && getStoredUsername())
+  return Boolean(getStoredPlayerId() && getStoredUsername() && getStoredRoomOption())
 }
 
 function replaceBrowserPath(path) {
@@ -89,7 +90,10 @@ function App() {
       return (
         <LobbyPage
           onLeaveLobby={() => navigate(routes.home)}
-          onAccessDenied={() => navigate(routes.home, { replace: true })}
+          onAccessDenied={() => {
+            clearStoredRoomId()
+            navigate(routes.home, { replace: true })
+          }}
         />
       )
     }

@@ -33,18 +33,17 @@ VITE_FIREBASE_PROJECT_ID=
 VITE_FIREBASE_STORAGE_BUCKET=
 VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
-VITE_DEFAULT_ROOM_CODE=ABC123
 ```
 
 ## Firebase
 
 Aura uses Firebase Realtime Database.
 
-- Room path: `rooms/ABC123`
+- Room paths: `rooms/biriyani`, `rooms/dosa`, `rooms/ice-cream`, `rooms/chocolate`, `rooms/pizza`
 - Words path: `words`
 - Word rotation path: `wordRotation`
 
-Use `database.rules.json` as the safer Realtime Database rules baseline. It limits reads and writes to Aura's single room, blocks writes to unknown rooms, blocks client writes to `words`, validates player usernames/colors/roles, validates clue length, and keeps the lobby capped at 11 players.
+Use `database.rules.json` as the safer Realtime Database rules baseline. It limits reads and writes to Aura's five allowed rooms, blocks writes to unknown rooms, blocks client writes to `words`, validates player usernames/colors/roles, validates clue length, and keeps each lobby capped at 11 players.
 
 To apply the rules, open Firebase Console, go to Realtime Database, open the Rules tab, and paste the contents of `database.rules.json`. If your Firebase CLI is configured for this project, you can also deploy the rules from this repo.
 
@@ -135,7 +134,6 @@ VITE_FIREBASE_PROJECT_ID
 VITE_FIREBASE_STORAGE_BUCKET
 VITE_FIREBASE_MESSAGING_SENDER_ID
 VITE_FIREBASE_APP_ID
-VITE_DEFAULT_ROOM_CODE
 ```
 
 Use preview deploys first, then deploy to production when ready.

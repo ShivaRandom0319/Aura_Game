@@ -4,7 +4,7 @@ import GlowingButton from '../components/GlowingButton'
 import StarsBackground from '../components/StarsBackground'
 
 const rules = [
-  'Join using room code ABC123',
+  'Choose one room before joining',
   'First player becomes host',
   'Host starts the game',
   'Crewmates see the secret word',

@@ -7,14 +7,20 @@ import {
 } from 'firebase/database'
 import { database } from '../firebase/firebaseConfig'
 import {
-  DEFAULT_ROOM_CODE,
   MAX_PLAYERS,
+  ROOM_OPTIONS,
   TYPING_TIME_SECONDS,
   USERNAME_MAX_LENGTH,
   VOTING_TIME_SECONDS,
 } from '../constants/gameConstants'
+import {
+  clearStoredRoomId,
+  getRoomOption,
+  getRoomPath,
+  getStoredRoomId,
+  setStoredRoomId,
+} from '../utils/roomUtils'
 
-const ROOM_PATH = `rooms/${DEFAULT_ROOM_CODE}`
 const PLAYER_ID_STORAGE_KEY = 'aura_player_id'
 const USERNAME_STORAGE_KEY = 'aura_username'
 const USERNAME_PATTERN = /^[A-Za-z0-9_]+$/
@@ -24,7 +30,7 @@ export const LOBBY_ERROR_MESSAGES = {
   duplicateUsername: 'This username is already taken. Try another name.',
   firebase: 'Could not join lobby. Please try again.',
   gameInProgress: 'Game already started. Wait for the next lobby.',
-  invalidRoomCode: 'Invalid room code. Use ABC123 to join Aura.',
+  invalidRoom: 'Choose one room to join Aura.',
   roomFull: 'Lobby is full. Maximum 11 players can join.',
 }
 
@@ -61,16 +67,14 @@ function createPlayerId() {
   return `player_${Date.now()}_${Math.random().toString(16).slice(2)}`
 }
 
-function getRoomReference() {
-  if (!database) {
+function getRoomReference(roomId = getStoredRoomId()) {
+  const roomPath = getRoomPath(roomId)
+
+  if (!database || !roomPath) {
     throw new LobbyServiceError(LOBBY_ERROR_MESSAGES.firebase)
   }
 
-  return ref(database, ROOM_PATH)
-}
-
-function normalizeRoomCode(roomCode) {
-  return String(roomCode ?? '').trim().toUpperCase()
+  return ref(database, roomPath)
 }
 
 function getActivePlayers(players = {}) {
@@ -670,12 +674,12 @@ export function validateUsername(username) {
   }
 }
 
-export async function joinRoom(username, roomCode) {
-  const normalizedRoomCode = normalizeRoomCode(roomCode)
+export async function joinRoom(username, roomId) {
+  const selectedRoom = getRoomOption(roomId)
   const usernameValidation = validateUsername(username)
 
-  if (normalizedRoomCode !== DEFAULT_ROOM_CODE) {
-    throw new LobbyServiceError(LOBBY_ERROR_MESSAGES.invalidRoomCode)
+  if (!selectedRoom) {
+    throw new LobbyServiceError(LOBBY_ERROR_MESSAGES.invalidRoom)
   }
 
   if (!usernameValidation.isValid) {
@@ -683,7 +687,7 @@ export async function joinRoom(username, roomCode) {
   }
 
   const playerId = getOrCreatePlayerId()
-  const roomReference = getRoomReference()
+  const roomReference = getRoomReference(selectedRoom.id)
   let joinError = ''
 
   try {
@@ -757,10 +761,11 @@ export async function joinRoom(username, roomCode) {
 
         return {
           ...currentRoom,
-          roomCode: DEFAULT_ROOM_CODE,
           gamePhase,
           hostId,
           players: nextPlayers,
+          roomId: selectedRoom.id,
+          roomName: selectedRoom.name,
         }
       },
       { applyLocally: false },
@@ -771,13 +776,14 @@ export async function joinRoom(username, roomCode) {
     }
 
     try {
-      const playerReference = ref(database, `${ROOM_PATH}/players/${playerId}`)
+      const playerReference = ref(database, `${getRoomPath(selectedRoom.id)}/players/${playerId}`)
       await onDisconnect(playerReference).remove()
     } catch {
       // Joining should still succeed if disconnect cleanup cannot be registered.
     }
 
     getStorage()?.setItem(USERNAME_STORAGE_KEY, usernameValidation.username)
+    setStoredRoomId(selectedRoom.id)
 
     return {
       playerId,
@@ -793,7 +799,7 @@ export async function joinRoom(username, roomCode) {
   }
 }
 
-export function listenToRoom(callback, onError) {
+export function listenToRoom(callback, onError, roomId = getStoredRoomId()) {
   if (!database) {
     Promise.resolve().then(() => {
       onError?.(new LobbyServiceError(LOBBY_ERROR_MESSAGES.firebase))
@@ -802,7 +808,17 @@ export function listenToRoom(callback, onError) {
     return () => {}
   }
 
-  const roomReference = ref(database, ROOM_PATH)
+  const roomPath = getRoomPath(roomId)
+
+  if (!roomPath) {
+    Promise.resolve().then(() => {
+      onError?.(new LobbyServiceError(LOBBY_ERROR_MESSAGES.firebase))
+    })
+
+    return () => {}
+  }
+
+  const roomReference = ref(database, roomPath)
   let isRepairingRoom = false
 
   return onValue(
@@ -824,12 +840,62 @@ export function listenToRoom(callback, onError) {
   )
 }
 
-export async function leaveRoom(playerId) {
+export function listenToRoomSummaries(callback, onError) {
+  if (!database) {
+    Promise.resolve().then(() => {
+      onError?.(new LobbyServiceError(LOBBY_ERROR_MESSAGES.firebase))
+    })
+
+    return () => {}
+  }
+
+  const summariesById = new Map(
+    ROOM_OPTIONS.map((roomOption) => [
+      roomOption.id,
+      {
+        ...roomOption,
+        gamePhase: 'lobby',
+        isFull: false,
+        playerCount: 0,
+      },
+    ]),
+  )
+
+  const notify = () => {
+    callback(ROOM_OPTIONS.map((roomOption) => summariesById.get(roomOption.id)))
+  }
+
+  const unsubscribes = ROOM_OPTIONS.map((roomOption) => {
+    return onValue(
+      ref(database, getRoomPath(roomOption.id)),
+      (snapshot) => {
+        const room = snapshot.val() ?? {}
+        const playerCount = getActivePlayers(room.players ?? {}).length
+
+        summariesById.set(roomOption.id, {
+          ...roomOption,
+          gamePhase: room.gamePhase ?? 'lobby',
+          isFull: playerCount >= MAX_PLAYERS,
+          playerCount,
+        })
+
+        notify()
+      },
+      onError,
+    )
+  })
+
+  return () => {
+    unsubscribes.forEach((unsubscribe) => unsubscribe())
+  }
+}
+
+export async function leaveRoom(playerId, roomId = getStoredRoomId()) {
   if (!playerId) {
     return
   }
 
-  const roomReference = getRoomReference()
+  const roomReference = getRoomReference(roomId)
 
   await runTransaction(roomReference, (room) => {
     if (!room?.players?.[playerId]) {
@@ -855,4 +921,8 @@ export async function leaveRoom(playerId) {
 
     return getRepairedRoom(nextRoom)
   })
+
+  if (roomId === getStoredRoomId()) {
+    clearStoredRoomId()
+  }
 }
