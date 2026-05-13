@@ -176,6 +176,20 @@ function createCrewmatesLeftResult(room) {
   }
 }
 
+function createImpostorParityResult(room) {
+  const impostorIds = getImpostorIds(room)
+  const impostorProfiles = getImpostorProfiles(room, impostorIds)
+
+  return {
+    winningTeam: 'impostors',
+    impostorIds: Object.fromEntries(impostorIds.map((impostorId) => [impostorId, true])),
+    impostorNames: impostorProfiles.map((player) => player.username),
+    impostorProfiles,
+    word: room.currentWord ?? null,
+    reason: 'Impostors matched the remaining crewmates.',
+  }
+}
+
 function resetRoomToEmptyLobby(room = {}) {
   return {
     ...room,
@@ -207,8 +221,44 @@ function getRoundOrder(room) {
     .map(([, playerId]) => playerId)
 }
 
+function hasSubmittedClue(room) {
+  return Object.keys(room?.roundClues ?? {}).length > 0
+}
+
+function shouldTakeFirstCrewmateClue(room) {
+  return !hasSubmittedClue(room)
+}
+
+function moveNextCrewmateIntoRoundSlot(room, roundOrder, startIndex) {
+  if (!shouldTakeFirstCrewmateClue(room)) {
+    return roundOrder
+  }
+
+  const crewmateIndex = roundOrder.findIndex((playerId, roundIndex) => {
+    const player = room.players?.[playerId]
+
+    return (
+      roundIndex >= startIndex &&
+      player &&
+      player.online !== false &&
+      player.role === 'crewmate'
+    )
+  })
+
+  if (crewmateIndex < 0 || crewmateIndex === startIndex) {
+    return roundOrder
+  }
+
+  const nextRoundOrder = [...roundOrder]
+  const currentSlotPlayerId = nextRoundOrder[startIndex]
+  nextRoundOrder[startIndex] = nextRoundOrder[crewmateIndex]
+  nextRoundOrder[crewmateIndex] = currentSlotPlayerId
+
+  return nextRoundOrder
+}
+
 function findNextAvailableRoundPlayer(room, startIndex = 0) {
-  const roundOrder = getRoundOrder(room)
+  const roundOrder = moveNextCrewmateIntoRoundSlot(room, getRoundOrder(room), startIndex)
 
   for (let roundIndex = startIndex; roundIndex < roundOrder.length; roundIndex += 1) {
     const playerId = roundOrder[roundIndex]
@@ -218,6 +268,7 @@ function findNextAvailableRoundPlayer(room, startIndex = 0) {
       return {
         playerId,
         roundIndex,
+        roundOrder,
       }
     }
   }
@@ -247,6 +298,7 @@ function moveToNextTypingRoundOrVoting(room, nextStartIndex) {
     gamePhase: 'typing',
     phaseDurationSeconds: TYPING_TIME_SECONDS,
     phaseStartedAt: serverTimestamp(),
+    roundOrder: nextPlayer.roundOrder,
   }
 }
 
@@ -484,13 +536,32 @@ function getRepairedRoom(room) {
     }
   }
 
+  if (
+    activeImpostorIds.length > 0 &&
+    activeCrewmates.length <= activeImpostorIds.length
+  ) {
+    return {
+      ...nextRoom,
+      currentTypingPlayerId: null,
+      gamePhase: 'result',
+      phaseDurationSeconds: null,
+      phaseStartedAt: serverTimestamp(),
+      result: createImpostorParityResult(nextRoom),
+      votes: pruneVotes(nextRoom),
+    }
+  }
+
   if (nextRoom.gamePhase === 'typing') {
     const currentTypingPlayer = nextRoom.players?.[nextRoom.currentTypingPlayerId]
 
     if (!currentTypingPlayer || currentTypingPlayer.online === false) {
+      const nextStartIndex = hasSubmittedClue(nextRoom)
+        ? (nextRoom.currentRoundIndex ?? 0) + 1
+        : nextRoom.currentRoundIndex ?? 0
+
       return moveToNextTypingRoundOrVoting(
         nextRoom,
-        (nextRoom.currentRoundIndex ?? 0) + 1,
+        nextStartIndex,
       )
     }
   }

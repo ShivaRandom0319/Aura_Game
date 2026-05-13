@@ -47,6 +47,38 @@ function getRoundOrder(room) {
     .map(([, playerId]) => playerId)
 }
 
+function hasSubmittedClue(room) {
+  return Object.keys(room?.roundClues ?? {}).length > 0
+}
+
+function moveNextCrewmateIntoRoundSlot(room, roundOrder, startIndex) {
+  if (hasSubmittedClue(room)) {
+    return roundOrder
+  }
+
+  const crewmateIndex = roundOrder.findIndex((playerId, roundIndex) => {
+    const player = room.players?.[playerId]
+
+    return (
+      roundIndex >= startIndex &&
+      player &&
+      player.online !== false &&
+      player.role === 'crewmate'
+    )
+  })
+
+  if (crewmateIndex < 0 || crewmateIndex === startIndex) {
+    return roundOrder
+  }
+
+  const nextRoundOrder = [...roundOrder]
+  const currentSlotPlayerId = nextRoundOrder[startIndex]
+  nextRoundOrder[startIndex] = nextRoundOrder[crewmateIndex]
+  nextRoundOrder[crewmateIndex] = currentSlotPlayerId
+
+  return nextRoundOrder
+}
+
 function getActivePlayers(room) {
   return Object.values(room?.players ?? {}).filter((player) => player?.online !== false)
 }
@@ -66,7 +98,7 @@ function isPhaseExpired(room) {
 }
 
 function findNextOnlineRoundPlayer(room, startIndex) {
-  const roundOrder = getRoundOrder(room)
+  const roundOrder = moveNextCrewmateIntoRoundSlot(room, getRoundOrder(room), startIndex)
 
   for (let roundIndex = startIndex; roundIndex < roundOrder.length; roundIndex += 1) {
     const playerId = roundOrder[roundIndex]
@@ -76,6 +108,7 @@ function findNextOnlineRoundPlayer(room, startIndex) {
       return {
         playerId,
         roundIndex,
+        roundOrder,
       }
     }
   }
@@ -105,6 +138,7 @@ function moveToNextTypingRoundOrVoting(room, nextStartIndex) {
     gamePhase: 'typing',
     phaseDurationSeconds: TYPING_TIME_SECONDS,
     phaseStartedAt: serverTimestamp(),
+    roundOrder: nextPlayer.roundOrder,
   }
 }
 
@@ -212,7 +246,11 @@ export async function submitNoClueForExpiredTypingRound() {
         !room.players?.[currentTypingPlayerId] ||
         room.players[currentTypingPlayerId].online === false
       ) {
-        return moveToNextTypingRoundOrVoting(room, (room.currentRoundIndex ?? 0) + 1)
+        const nextStartIndex = hasSubmittedClue(room)
+          ? (room.currentRoundIndex ?? 0) + 1
+          : room.currentRoundIndex ?? 0
+
+        return moveToNextTypingRoundOrVoting(room, nextStartIndex)
       }
 
       return moveTypingRoundToDiscussion(room, NO_CLUE_TEXT)
@@ -241,7 +279,11 @@ export async function skipUnavailableTypingPlayer() {
         return room
       }
 
-      return moveToNextTypingRoundOrVoting(room, (room.currentRoundIndex ?? 0) + 1)
+      const nextStartIndex = hasSubmittedClue(room)
+        ? (room.currentRoundIndex ?? 0) + 1
+        : room.currentRoundIndex ?? 0
+
+      return moveToNextTypingRoundOrVoting(room, nextStartIndex)
     },
     { applyLocally: false },
   )

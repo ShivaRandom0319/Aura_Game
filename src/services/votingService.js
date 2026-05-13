@@ -259,6 +259,13 @@ function calculateResult(room) {
     return createResult(room, 'impostors', 'All crewmates left the game.')
   }
 
+  if (
+    activeImpostorIds.length > 0 &&
+    activeCrewmates.length <= activeImpostorIds.length
+  ) {
+    return createResult(room, 'impostors', 'Impostors matched the remaining crewmates.')
+  }
+
   const outcome =
     activeImpostorIds.length > 1
       ? calculateTwoImpostorResult(voteCounts, activeImpostorIds)

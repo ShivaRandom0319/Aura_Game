@@ -105,8 +105,32 @@ function getRoundOrder(room) {
     .map(([, playerId]) => playerId)
 }
 
+function moveNextCrewmateIntoRoundSlot(room, roundOrder, startIndex) {
+  const crewmateIndex = roundOrder.findIndex((playerId, roundIndex) => {
+    const player = room.players?.[playerId]
+
+    return (
+      roundIndex >= startIndex &&
+      player &&
+      player.online !== false &&
+      player.role === 'crewmate'
+    )
+  })
+
+  if (crewmateIndex < 0 || crewmateIndex === startIndex) {
+    return roundOrder
+  }
+
+  const nextRoundOrder = [...roundOrder]
+  const currentSlotPlayerId = nextRoundOrder[startIndex]
+  nextRoundOrder[startIndex] = nextRoundOrder[crewmateIndex]
+  nextRoundOrder[crewmateIndex] = currentSlotPlayerId
+
+  return nextRoundOrder
+}
+
 function findNextOnlineRoundPlayer(room, startIndex = 0) {
-  const roundOrder = getRoundOrder(room)
+  const roundOrder = moveNextCrewmateIntoRoundSlot(room, getRoundOrder(room), startIndex)
 
   for (let roundIndex = startIndex; roundIndex < roundOrder.length; roundIndex += 1) {
     const playerId = roundOrder[roundIndex]
@@ -116,6 +140,7 @@ function findNextOnlineRoundPlayer(room, startIndex = 0) {
       return {
         playerId,
         roundIndex,
+        roundOrder,
       }
     }
   }
@@ -294,6 +319,7 @@ export async function advanceRevealToTyping() {
         gamePhase: 'typing',
         phaseDurationSeconds: TYPING_TIME_SECONDS,
         phaseStartedAt: serverTimestamp(),
+        roundOrder: firstTypingPlayer.roundOrder,
       }
     },
     { applyLocally: false },
