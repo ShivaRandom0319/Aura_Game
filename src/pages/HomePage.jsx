@@ -26,29 +26,24 @@ function HomePage({ onPlay, onAbout }) {
         </motion.div>
 
         <motion.div
-          className="mx-auto mt-8 flex w-full max-w-5xl flex-1 items-center justify-center"
+          className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center justify-center gap-9"
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.7, delay: 0.12, ease: 'easeOut' }}
         >
           <div className="h-48 w-48 rounded-full border border-cyan-200/20 bg-cyan-200/10 shadow-[0_0_60px_rgba(34,211,238,0.18),inset_0_0_32px_rgba(255,255,255,0.08)] md:h-64 md:w-64" />
-        </motion.div>
 
-        <motion.div
-          className="mx-auto grid w-full max-w-md gap-4 sm:grid-cols-2"
-          initial={{ opacity: 0, y: 22 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.25, ease: 'easeOut' }}
-        >
-          <div className="flex justify-center sm:justify-end">
-            <GlowingButton className="min-w-44" onClick={onPlay}>
-              Play
-            </GlowingButton>
-          </div>
-          <div className="flex justify-center sm:justify-start">
-            <GlowingButton className="min-w-44" variant="secondary" onClick={onAbout}>
-              About
-            </GlowingButton>
+          <div className="grid w-full max-w-md gap-4 sm:grid-cols-2">
+            <div className="flex justify-center sm:justify-end">
+              <GlowingButton className="min-w-44" onClick={onPlay}>
+                Play
+              </GlowingButton>
+            </div>
+            <div className="flex justify-center sm:justify-start">
+              <GlowingButton className="min-w-44" variant="secondary" onClick={onAbout}>
+                About
+              </GlowingButton>
+            </div>
           </div>
         </motion.div>
       </section>
