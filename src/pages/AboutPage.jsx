@@ -46,41 +46,46 @@ const faqs = [
 
 function AboutPage({ onBack }) {
   return (
-    <main className="relative min-h-screen overflow-hidden bg-slate-950 px-6 py-7 text-white">
+    <main className="relative min-h-screen overflow-hidden bg-slate-950 px-7 py-6 text-white">
       <StarsBackground />
 
-      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3.5rem)] max-w-7xl items-center">
-        <GameCard className="w-full p-6">
+      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-3rem)] max-w-[92rem] flex-col">
+        <div className="mb-4 flex justify-start">
+          <GlowingButton variant="secondary" className="min-w-32" onClick={onBack}>
+            Back
+          </GlowingButton>
+        </div>
+
+        <GameCard className="flex flex-1 flex-col p-7 xl:p-8">
           <motion.header
             className="flex flex-col gap-4 text-center lg:text-left"
             initial={{ opacity: 0, x: -18 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.45, ease: 'easeOut' }}
           >
-           
-            <h1 className="text-4xl font-black tracking-normal text-white md:text-5xl">
+            <h1 className="text-5xl font-black tracking-normal text-white md:text-6xl">
               ABOUT AURA
             </h1>
-            <p className="text-base font-black text-cyan-100 drop-shadow-[0_0_18px_rgba(34,211,238,0.36)]">
+            <p className="text-xl font-black text-cyan-100 drop-shadow-[0_0_18px_rgba(34,211,238,0.36)]">
               © Aura by Shiva — Classified multiplayer project
             </p>
           </motion.header>
 
           <motion.div
-            className="mt-7 grid gap-6 lg:grid-cols-2"
+            className="mt-8 grid flex-1 gap-7 lg:grid-cols-[1.18fr_0.82fr]"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45, delay: 0.1, ease: 'easeOut' }}
           >
-            <section className="rounded-2xl border border-cyan-200/15 bg-slate-950/45 p-5 shadow-[0_0_24px_rgba(34,211,238,0.1)]">
-              <h2 className="text-2xl font-black tracking-normal text-cyan-100">
+            <section className="rounded-2xl border border-cyan-200/15 bg-slate-950/45 p-6 shadow-[0_0_24px_rgba(34,211,238,0.1)]">
+              <h2 className="text-4xl font-black tracking-normal text-cyan-100">
                 RULES
               </h2>
-              <div className="mt-5 space-y-3">
+              <div className="mt-6 grid gap-3">
                 {rules.map((rule) => (
                   <p
                     key={rule}
-                    className="rounded-2xl border border-cyan-200/10 bg-white/5 px-4 py-3 text-sm font-semibold leading-6 text-slate-200"
+                    className="rounded-2xl border border-cyan-200/10 bg-white/5 px-5 py-3 text-base font-semibold leading-7 text-slate-100 xl:text-lg xl:leading-8"
                   >
                     {rule}
                   </p>
@@ -88,15 +93,20 @@ function AboutPage({ onBack }) {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-fuchsia-200/15 bg-slate-950/45 p-5 shadow-[0_0_24px_rgba(217,70,239,0.1)]">
-              <h2 className="text-2xl font-black tracking-normal text-fuchsia-100">
+            <section className="rounded-2xl border border-fuchsia-200/15 bg-slate-950/45 p-6 shadow-[0_0_24px_rgba(217,70,239,0.1)]">
+              <h2 className="text-4xl font-black tracking-normal text-fuchsia-100">
                 FAQ
               </h2>
-              <div className="mt-5 space-y-4">
+              <div className="mt-6 space-y-5">
                 {faqs.map((faq) => (
-                  <div key={faq.question}>
-                    <h3 className="text-sm font-black text-white">{faq.question}</h3>
-                    <p className="mt-1 text-sm font-semibold leading-6 text-slate-300">
+                  <div
+                    key={faq.question}
+                    className="rounded-2xl border border-fuchsia-200/10 bg-white/5 px-5 py-4"
+                  >
+                    <h3 className="text-lg font-black leading-7 text-white xl:text-xl">
+                      {faq.question}
+                    </h3>
+                    <p className="mt-2 text-base font-semibold leading-7 text-slate-200 xl:text-lg xl:leading-8">
                       {faq.answer}
                     </p>
                   </div>
@@ -104,12 +114,6 @@ function AboutPage({ onBack }) {
               </div>
             </section>
           </motion.div>
-
-          <div className="mt-7 flex justify-center lg:justify-start">
-            <GlowingButton variant="secondary" onClick={onBack}>
-              Back
-            </GlowingButton>
-          </div>
         </GameCard>
       </div>
     </main>
